@@ -16,6 +16,7 @@ begin
     process (all)
 	 begin
 	     if rst then
+		      -- test
 		      b <= (0 => '1', others => '0');
 				c <= (others => '0');
 		   elsif rising_edge(clk) then
