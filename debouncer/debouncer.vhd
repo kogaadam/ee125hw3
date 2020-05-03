@@ -15,7 +15,8 @@ end entity;
 
 architecture single_switch of debouncer is
 	constant COUNTER_BITS: natural := 1 + 2;--integer(ceil(log2(real(T_DEB_MS*F_CLK_KHZ))));
-	constant SSD_INT_BITS: natural := 3;
+	constant SSD_INT_BITS: natural := 4;
+	signal x_prev, y_prev: std_logic;
 begin
 
 	-- Test Circuit
@@ -41,26 +42,27 @@ begin
 		begin
 			-- Build x counter
 			if rst = '1' then
-				count_x = 0;
+				count_x := 0;
 			else
-				if rising_edge(x) or falling_edge(x) then
-					count_x = count_x + 1;
+				if x /= x_prev then
+					count_x := count_x + 1;
 				end if;
 			end if;
 			
-			ssd_x <= std_logic_vector(to_unsigned(count_x, SSD_INT_BITS));
-			
+			ssd_x <= slv_to_ssd(std_logic_vector(to_unsigned(count_x, SSD_INT_BITS)));
 			
 			-- Build y counter
 			if rst = '1' then
-				count_y = 0;
+				count_y := 0;
 			else
-				if rising_edge(y) or falling_edge(y) then
-					count_y = count_y + 1;
+				if y /= y_prev then
+					count_y := count_y + 1;
 				end if;
 			end if;
 			
-			ssd_y <= std_logic_vector(to_unsigned(count_x, SSD_INT_BITS));
+			ssd_y <= slv_to_ssd(std_logic_vector(to_unsigned(count_y, SSD_INT_BITS)));
+			x_prev <= x;
+			y_prev <= y;
 			
 		end process;
 		
