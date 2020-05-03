@@ -8,13 +8,63 @@ entity debouncer is
 		T_DEB_MS: natural := 25;		 --minimum debounce time in ms
 		F_CLK_KHZ: natural := 50_000); --clock frequency in kHz
 	port (
-		x, clk: in std_logic;
-		y: out std_logic);
+		x, clk, rst: in std_logic;
+		y: out std_logic;
+		ssd_x, ssd_y: out std_logic_vector(6 downto 0));
 end entity;
 
 architecture single_switch of debouncer is
 	constant COUNTER_BITS: natural := 1 + 2;--integer(ceil(log2(real(T_DEB_MS*F_CLK_KHZ))));
+	constant SSD_INT_BITS: natural := 3;
 begin
+
+	-- Test Circuit
+	process(all)
+		function slv_to_ssd (input: std_logic_vector) return std_logic_vector is
+		begin
+			case input is
+				when "0000" => return "0000001";		--"0" on SSD
+				when "0001" => return "1001111";		--"1" on SSD
+				when "0010" => return "0010010";		--"2" on SSD
+				when "0011" => return "0000110";		--"3" on SSD
+				when "0100" => return "1001100";		--"4" on SSD
+				when "0101" => return "0100100";		--"5" on SSD
+				when "0110" => return "0100000";		--"6" on SSD
+				when "0111" => return "0001111";		--"7" on SSD
+				when "1000" => return "0000000";		--"8" on SSD
+				when others => return "1111110";		--"-" on SSD
+			end case;
+		end function slv_to_ssd;
+		
+		variable count_x, count_y: natural range 0 to 8;
+		
+		begin
+			-- Build x counter
+			if rst = '1' then
+				count_x = 0;
+			else
+				if rising_edge(x) or falling_edge(x) then
+					count_x = count_x + 1;
+				end if;
+			end if;
+			
+			ssd_x <= std_logic_vector(to_unsigned(count_x, SSD_INT_BITS));
+			
+			
+			-- Build y counter
+			if rst = '1' then
+				count_y = 0;
+			else
+				if rising_edge(y) or falling_edge(y) then
+					count_y = count_y + 1;
+				end if;
+			end if;
+			
+			ssd_y <= std_logic_vector(to_unsigned(count_x, SSD_INT_BITS));
+			
+		end process;
+		
+		
 
 	process(clk)
 		variable count: unsigned(COUNTER_BITS-1 downto 0);
