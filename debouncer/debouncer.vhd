@@ -15,8 +15,8 @@ end entity;
 
 architecture single_switch of debouncer is
 	constant COUNTER_BITS: natural := 1 + integer(ceil(log2(real(T_DEB_MS*F_CLK_KHZ))));
-	constant SSD_INT_BITS: natural := 4;
-	signal y_prev: std_logic;
+	constant SSD_INT_BITS: natural := 4; --number of bits for the SSD integer
+	signal y_prev: std_logic; --previous value of the output
 begin	
 
 	-- Test Circuit
@@ -49,19 +49,23 @@ begin
 	begin
 		-- Build x counter
 		if rst = '1' then
-			count_x_fall := 0;
+			count_x_fall := 0; --counter for falling edge changes
 		else
 			if falling_edge(x) then
+				-- increment the edge counter
 				count_x_fall := count_x_fall + 1;
 			end if;		
 		end if;
 	
+		-- still display the sum to the SSD for generality
 		ssd_x <= slv_to_ssd(std_logic_vector(to_unsigned(count_x_rise + count_x_fall, SSD_INT_BITS)));
 			
 		-- Build y counter
 		if rst = '1' then
 			count_y := 0;
 		else
+			-- if on the rising edge of the clock y doesnt match its previous value then
+			--     we switched so increment the counter for y
 			if rising_edge(clk) then
 				if y /= y_prev then
 					count_y := count_y + 1;
@@ -69,19 +73,24 @@ begin
 			end if;
 		end if;
 			
+		-- display the y counter to the SSD
 		ssd_y <= slv_to_ssd(std_logic_vector(to_unsigned(count_y, SSD_INT_BITS)));
 			
 	end process;		
 
 	process(clk)
 		variable count: unsigned(COUNTER_BITS-1 downto 0);
-		variable y_back, counter_done: std_logic;
+		variable y_back, counter_done: std_logic; --used to set the previous value of y
+																--    back to the current one
+																-- counter_done indicates if we have
+																--     finished the debounce count
 	begin
-		
 		-- Timer
 		if rising_edge(clk) then
+			-- reset the debounce counter if the input is high (active low button)
 			if x then
 				count := (others => '0');
+			-- otherwise if the counter is not done then increment it
 			elsif not counter_done then
 				count := count + 1;
 			end if;
@@ -90,23 +99,32 @@ begin
 		--Output register:
 		if falling_edge(clk) then
 			
+			-- if the switch is not pressed then reset the counter done indicator
 			if x then
 				counter_done := '0';
 			end if;
 			
+			-- if we want to set the previous value of y back to its original value then
+			--     do it and reset this indicator
 			if y_back = '1' then
 				y_prev <= y;
 				y_back := '0';
 			end if;
 		
 			if count(COUNTER_BITS-1) then
+				-- invert the output if we reached the end of the timer and set the
+				--     indicator for our previous value
+				-- also set the previous output value to the current value before it
+				--     gets inverted
 				y_prev <= y;
 				y_back := '1';
+				-- set the indicator that we are done counting
 				counter_done := '1';
 				y <= not y;
 			end if;
 		end if;
 		
+		-- we are done counting so reset the debounce counter
 		if counter_done then
 			count := (others => '0');
 		end if;
