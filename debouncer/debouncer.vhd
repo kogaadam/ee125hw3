@@ -13,7 +13,7 @@ entity debouncer is
 end entity;
 
 architecture single_switch of debouncer is
-	constant COUNTER_BITS: natural := 1 + 2;--integer(ceil(log2(real(T_DEB_MS*F_CLK_KHZ))));
+	constant COUNTER_BITS: natural := 3; --given that N=2
 begin
 
 	process(clk)
@@ -22,6 +22,7 @@ begin
 		
 		-- Timer
 		if rising_edge(clk) then
+			-- increment timer if the output doesnt match the input
 			if y=x then
 				count := (others => '0');
 			else
@@ -32,6 +33,7 @@ begin
 		--Output register:
 		if falling_edge(clk) then
 			if count(COUNTER_BITS-1) then
+				-- invert the output if the counter is done
 				y <= not y;
 			end if;
 		end if;
