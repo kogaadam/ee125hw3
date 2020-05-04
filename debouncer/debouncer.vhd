@@ -80,20 +80,24 @@ begin
 
 	process(clk)
 		variable count: unsigned(COUNTER_BITS-1 downto 0);
-		variable y_back: std_logic;
+		variable y_back, counter_done: std_logic;
 	begin
 		
 		-- Timer
 		if rising_edge(clk) then
-			if y /= x then
+			if x then
 				count := (others => '0');
-			else
+			elsif not counter_done then
 				count := count + 1;
 			end if;
 		end if;
 		
 		--Output register:
 		if falling_edge(clk) then
+			
+			if x then
+				counter_done := '0';
+			end if;
 			
 			if y_back = '1' then
 				y_prev <= y;
@@ -103,8 +107,13 @@ begin
 			if count(COUNTER_BITS-1) then
 				y_prev <= y;
 				y_back := '1';
+				counter_done := '1';
 				y <= not y;
 			end if;
+		end if;
+		
+		if counter_done then
+			count := (others => '0');
 		end if;
 		
 	end process;
