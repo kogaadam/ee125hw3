@@ -10,14 +10,13 @@ entity debouncer is
 	port (
 		x, clk, rst: in std_logic;
 		y: out std_logic;
-		x_prev, y_prev: out std_logic;
 		ssd_x, ssd_y: out std_logic_vector(6 downto 0));
 end entity;
 
 architecture single_switch of debouncer is
 	constant COUNTER_BITS: natural := 1 + integer(ceil(log2(real(T_DEB_MS*F_CLK_KHZ))));
 	constant SSD_INT_BITS: natural := 4;
-	--signal x_prev, y_prev: std_logic;
+	signal y_prev: std_logic;
 begin	
 
 	-- Test Circuit
@@ -46,7 +45,6 @@ begin
 		end function slv_to_ssd;
 		
 		variable count_x_rise, count_x_fall, count_y: natural range 0 to 8;
-		--variable x_prev, y_prev: std_logic;
 		
 	begin
 		-- Build x counter
@@ -87,7 +85,7 @@ begin
 		
 		-- Timer
 		if rising_edge(clk) then
-			if y=x then
+			if y /= x then
 				count := (others => '0');
 			else
 				count := count + 1;
@@ -96,7 +94,7 @@ begin
 		
 		--Output register:
 		if falling_edge(clk) then
-		
+			
 			if y_back = '1' then
 				y_prev <= y;
 				y_back := '0';
