@@ -15,8 +15,8 @@ end entity;
 
 architecture single_switch of debouncer is
 	constant COUNTER_BITS: natural := 1 + integer(ceil(log2(real(T_DEB_MS*F_CLK_KHZ))));
-	constant SSD_INT_BITS: natural := 4;
-	signal y_prev: std_logic;
+	constant SSD_INT_BITS: natural := 4; --number of bits for the SSD integer
+	signal y_prev: std_logic; --previous value of the output
 begin	
 
 	-- Test Circuit
@@ -49,10 +49,10 @@ begin
 	begin
 		-- Build x counter
 		if rst = '1' then
-			count_x_rise := 0;
-			count_x_fall := 0;
+			count_x_rise := 0; --counter for rising edge changes
+			count_x_fall := 0; --counter for falling edge changes
 		else
-			--if x = '1' and x_prev = '0' then
+			-- increment edge counters appropriately
 			if rising_edge(x) then
 				count_x_rise := count_x_rise + 1;
 			end if;
@@ -61,31 +61,37 @@ begin
 			end if;		
 		end if;
 	
+		-- display the sum to the SSD so it is always increasing by one
 		ssd_x <= slv_to_ssd(std_logic_vector(to_unsigned(count_x_rise + count_x_fall, SSD_INT_BITS)));
 			
 		-- Build y counter
 		if rst = '1' then
 			count_y := 0;
 		else
+			-- if on the rising edge of the clock y doesnt match its previous value then
+			--     we switched so increment the counter for y
 			if rising_edge(clk) then
 				if y /= y_prev then
 					count_y := count_y + 1;
 				end if;
 			end if;
 		end if;
-			
+		
+		-- display the y counter to the SSD
 		ssd_y <= slv_to_ssd(std_logic_vector(to_unsigned(count_y, SSD_INT_BITS)));
 			
 	end process;		
 
 	process(clk)
 		variable count: unsigned(COUNTER_BITS-1 downto 0);
-		variable y_back: std_logic;
+		variable y_back: std_logic; --used to set the previous value of y back to the
+											 --    current one
 	begin
 		
 		-- Timer
 		if rising_edge(clk) then
-			if y /= x then
+			-- increment the debounce counter if the output is not equal to the input
+			if y = x then
 				count := (others => '0');
 			else
 				count := count + 1;
@@ -95,12 +101,18 @@ begin
 		--Output register:
 		if falling_edge(clk) then
 			
+			-- if we want to set the previous value of y back to its original value then
+			--     do it and reset this indicator
 			if y_back = '1' then
 				y_prev <= y;
 				y_back := '0';
 			end if;
 		
 			if count(COUNTER_BITS-1) then
+				-- invert the output if we reached the end of the timer and set the
+				--     indicator for our previous value
+				-- also set the previous output value to the current value before it
+				--     gets inverted
 				y_prev <= y;
 				y_back := '1';
 				y <= not y;
