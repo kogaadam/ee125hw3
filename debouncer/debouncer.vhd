@@ -49,14 +49,9 @@ begin
 	begin
 		-- Build x counter
 		if rst = '1' then
-			count_x_rise := 0;
 			count_x_fall := 0;
 		else
-			--if x = '1' and x_prev = '0' then
-			if rising_edge(x) then
-				count_x_rise := count_x_rise + 1;
-			end if;
-			 if falling_edge(x) then
+			if falling_edge(x) then
 				count_x_fall := count_x_fall + 1;
 			end if;		
 		end if;
